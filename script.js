@@ -10,32 +10,55 @@ const els = {
   pill: document.getElementById('decisionPill'),
   topk: document.getElementById('topk'),
   hint: document.getElementById('hint'),
+  stats: document.getElementById('stats'),
+  regionSelect: document.getElementById('regionSelect'),
+  themeToggle: document.getElementById('themeToggle'),
+  findRecycling: document.getElementById('findRecycling')
 };
+
+// Region-specific recycling rules
+const recyclingRules = {
+  'default': { note: 'General guidelines - check local rules' },
+  'US-CA': { note: 'California: Most plastics #1-7, all glass & metal', extra: ['pizza box (clean)', 'cartons'] },
+  'US-NY': { note: 'New York: Plastics #1-7, no plastic bags', notAllowed: ['plastic bags', 'styrofoam'] },
+  'US-TX': { note: 'Texas: Varies by city - check locally', extra: ['cardboard', 'metal cans'] },
+  'EU': { note: 'EU: Strict sorting, most packaging recyclable', extra: ['tetra packs', 'all glass'] }
+};
+
+let currentRegion = localStorage.getItem('recycleRegion') || 'default';
+let stats = JSON.parse(localStorage.getItem('recycleStats') || '{"total":0,"recycled":0,"trash":0}');
 
 const recyclableKeywords = [
   // Glass
-  'bottle', 'water bottle', 'wine bottle', 'beer bottle', 'glass bottle', 'jar', 'glass jar',
+  'bottle', 'water bottle', 'wine bottle', 'beer bottle', 'glass bottle', 'soda bottle', 'jar', 'glass jar', 'glass container',
+  'beer bottle', 'liquor bottle', 'juice bottle', 'mason jar',
   // Metal
   'can', 'soda can', 'pop can', 'beer can', 'tin', 'tin can', 'aluminium', 'aluminum', 'aluminum can', 'steel', 'metal can',
+  'soup can', 'food can', 'aluminum foil', 'metal lid', 'bottle cap', 'steel can', 'metal container',
   // Paper & Cardboard
   'paper', 'newspaper', 'magazine', 'cardboard', 'cardboard box', 'carton', 'paper bag', 'mail', 'envelope',
-  'cereal box', 'pizza box', 'shipping box', 'corrugated',
+  'cereal box', 'pizza box', 'shipping box', 'corrugated', 'paperboard', 'office paper', 'notebook',
+  'milk carton', 'juice carton', 'egg carton', 'shoe box', 'tissue box',
   // Plastic (common recyclable types)
-  'plastic bottle', 'water jug', 'milk jug', 'detergent bottle', 'shampoo bottle',
-  'plastic container', 'yogurt container', 'butter tub'
+  'plastic bottle', 'water jug', 'milk jug', 'detergent bottle', 'shampoo bottle', 'conditioner bottle',
+  'plastic container', 'yogurt container', 'butter tub', 'storage container', 'tupperware',
+  'soda bottle', 'juice bottle', 'cleaning bottle'
 ];
 const likelyTrashKeywords = [
   // Food & organic waste
   'banana', 'peel', 'apple', 'orange', 'pizza', 'burger', 'hotdog', 'sandwich', 'food', 'leftover',
-  'meat', 'chicken', 'fish', 'egg', 'eggshell', 'bread', 'fruit', 'vegetable',
+  'meat', 'chicken', 'fish', 'egg', 'eggshell', 'bread', 'fruit', 'vegetable', 'french fries', 'taco',
+  'salad', 'pasta', 'rice', 'noodles', 'cake', 'cookie', 'donut', 'bagel',
   // Non-recyclable plastics & materials
   'plastic bag', 'grocery bag', 'shopping bag', 'styrofoam', 'polystyrene', 'foam', 'bubble wrap',
-  'chip bag', 'candy wrapper', 'straw', 'plastic wrap', 'cellophane',
+  'chip bag', 'candy wrapper', 'straw', 'plastic wrap', 'cellophane', 'plastic cutlery', 'plastic fork',
+  'plastic knife', 'plastic spoon', 'foam container', 'takeout container', 'to-go container',
   // Paper products (contaminated/non-recyclable)
   'tissue', 'napkin', 'paper towel', 'paper plate', 'paper cup', 'coffee cup', 'disposable',
+  'used napkin', 'paper napkin', 'kleenex', 'toilet paper',
   // Other trash
   'diaper', 'cigarette', 'cigarette butt', 'wrapper', 'trash', 'garbage', 'waste',
-  'dirty', 'soiled', 'greasy', 'contaminated'
+  'dirty', 'soiled', 'greasy', 'contaminated', 'gum', 'chewing gum', 'receipt'
 ];
 
 function keywordMatch(preds, keywords) {
@@ -46,10 +69,20 @@ function keywordMatch(preds, keywords) {
 function decide(preds) {
   const hitRecyclable = keywordMatch(preds, recyclableKeywords);
   const hitTrash = keywordMatch(preds, likelyTrashKeywords);
+  
+  // Update stats
+  stats.total++;
+  
   if (hitRecyclable && (!hitTrash || hitRecyclable.probability >= hitTrash.probability * 1.2)) {
-    return { decision: 'Recyclable', kind: 'ok', match: hitRecyclable };
+    stats.recycled++;
+    localStorage.setItem('recycleStats', JSON.stringify(stats));
+    if ('vibrate' in navigator) navigator.vibrate(50); // Haptic feedback
+    return { decision: 'Recyclable', kind: 'ok', match: hitRecyclable, confidence: hitRecyclable.probability };
   }
-  return { decision: 'Trash', kind: 'bad', match: hitTrash || preds[0] };
+  stats.trash++;
+  localStorage.setItem('recycleStats', JSON.stringify(stats));
+  if ('vibrate' in navigator) navigator.vibrate([30, 50, 30]); // Different pattern
+  return { decision: 'Trash', kind: 'bad', match: hitTrash || preds[0], confidence: (hitTrash || preds[0]).probability };
 }
 
 function displayLabel(decision) {
@@ -76,9 +109,20 @@ async function classifySource(srcEl) {
   els.pill.textContent = displayLabel(result.decision);
   els.pill.className = `pill ${result.kind}`;
   els.topk.innerHTML = preds.map(p => `${(p.probability*100).toFixed(1)}% · ${prettyClassName(p.className)}`).join('<br/>');
-  els.hint.textContent = result.decision === 'Recyclable'
-    ? 'Rinse if dirty. Check local rules for caps and labels.'
-    : 'Likely landfill. If it is a clean bottle/can/jar/box, it can be recyclable.';
+  
+  // Show confidence score
+  const confidence = (result.confidence * 100).toFixed(0);
+  const regionInfo = recyclingRules[currentRegion];
+  els.hint.innerHTML = `
+    <strong>${confidence}% confident</strong><br>
+    ${result.decision === 'Recyclable' 
+      ? 'Rinse if dirty. Check local rules for caps and labels.' 
+      : 'Likely landfill. If it is a clean bottle/can/jar/box, it might be recyclable.'}
+    <br><small>${regionInfo.note}</small>
+  `;
+  
+  // Update stats display
+  updateStatsDisplay();
   els.results.hidden = false;
 }
 
@@ -143,6 +187,75 @@ async function loopClassifyVideo() {
   requestAnimationFrame(tick);
 }
 
+// Stats display
+function updateStatsDisplay() {
+  if (els.stats) {
+    const percentage = stats.total > 0 ? Math.round((stats.recycled / stats.total) * 100) : 0;
+    els.stats.innerHTML = `📊 ${stats.total} items checked | ♻️ ${stats.recycled} recycled (${percentage}%) | 🗑️ ${stats.trash} trash`;
+  }
+}
+
+// Theme toggle
+function toggleTheme() {
+  const html = document.documentElement;
+  const currentTheme = html.getAttribute('data-theme') || 'dark';
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  if (els.themeToggle) {
+    els.themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+  }
+}
+
+// Region selection
+function changeRegion() {
+  if (els.regionSelect) {
+    currentRegion = els.regionSelect.value;
+    localStorage.setItem('recycleRegion', currentRegion);
+  }
+}
+
+// Find nearby recycling centers
+function findRecyclingCenters() {
+  if ('geolocation' in navigator) {
+    els.findRecycling.textContent = 'Locating...';
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        // Open Google Maps with recycling center search
+        const url = `https://www.google.com/maps/search/recycling+center/@${latitude},${longitude},14z`;
+        window.open(url, '_blank');
+        els.findRecycling.textContent = '📍 Find Recycling Centers';
+      },
+      (error) => {
+        alert('Location access denied. Opening general search...');
+        window.open('https://www.google.com/maps/search/recycling+center', '_blank');
+        els.findRecycling.textContent = '📍 Find Recycling Centers';
+      }
+    );
+  } else {
+    window.open('https://www.google.com/maps/search/recycling+center', '_blank');
+  }
+}
+
+// Initialize
+function init() {
+  // Load theme
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  if (els.themeToggle) {
+    els.themeToggle.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+  }
+  
+  // Load region
+  if (els.regionSelect) {
+    els.regionSelect.value = currentRegion;
+  }
+  
+  // Update stats
+  updateStatsDisplay();
+}
+
 // Event wiring
 els.file.addEventListener('change', (e) => {
   const file = e.target.files && e.target.files[0];
@@ -150,6 +263,13 @@ els.file.addEventListener('change', (e) => {
 });
 els.cameraBtn.addEventListener('click', startCamera);
 els.stopCameraBtn.addEventListener('click', stopCamera);
+
+if (els.themeToggle) els.themeToggle.addEventListener('click', toggleTheme);
+if (els.regionSelect) els.regionSelect.addEventListener('change', changeRegion);
+if (els.findRecycling) els.findRecycling.addEventListener('click', findRecyclingCenters);
+
+// Initialize on load
+init();
 
 // PWA bits
 if ('serviceWorker' in navigator) {

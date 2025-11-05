@@ -17,8 +17,24 @@
 </head>
 <body>
   <header>
-    <h1>Recycle or Trash</h1>
-    <p>On-device image check. No uploads. Works offline after first load.</p>
+    <div class="header-top">
+      <div>
+        <h1>Recycle or Trash</h1>
+        <p>On-device image check. No uploads. Works offline after first load.</p>
+      </div>
+      <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark/light mode">☀️</button>
+    </div>
+    <div class="header-controls">
+      <select id="regionSelect" class="region-select" aria-label="Select your region">
+        <option value="default">General (Worldwide)</option>
+        <option value="US-CA">California, USA</option>
+        <option value="US-NY">New York, USA</option>
+        <option value="US-TX">Texas, USA</option>
+        <option value="EU">European Union</option>
+      </select>
+      <button id="findRecycling" class="btn btn-secondary" aria-label="Find nearby recycling centers">📍 Find Recycling Centers</button>
+    </div>
+    <div id="stats" class="stats" role="status" aria-live="polite">📊 0 items checked | ♻️ 0 recycled (0%) | 🗑️ 0 trash</div>
   </header>
 
   <main>
