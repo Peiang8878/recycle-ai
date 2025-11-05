@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Recycle or Trash</title>
+  <meta name="theme-color" content="#0ea5e9" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/styles.css" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+</head>
+<body>
+  <header>
+    <h1>Recycle or Trash</h1>
+    <p>On-device image check. No uploads. Works offline after first load.</p>
+  </header>
+
+  <main>
+    <section class="input">
+      <div class="buttons">
+        <label class="btn">
+          <input id="fileInput" type="file" accept="image/*" capture="environment" hidden />
+          <span>Take/Choose Photo</span>
+        </label>
+        <button id="cameraBtn" class="btn" type="button">Live Camera</button>
+        <button id="stopCameraBtn" class="btn outline" type="button" hidden>Stop</button>
+      </div>
+
+      <div class="preview">
+        <img id="previewImg" alt="Preview" />
+        <video id="video" playsinline muted hidden></video>
+        <canvas id="canvas" hidden></canvas>
+      </div>
+    </section>
+
+    <section class="results" id="results" hidden>
+      <div class="pill" id="decisionPill">–</div>
+      <div class="topk" id="topk"></div>
+      <p class="hint" id="hint"></p>
+    </section>
+  </main>
+
+  <footer>
+    <small>Model: MobileNetV2 (TensorFlow.js). Mapping heuristic for MVP. For better accuracy, fine-tuning on waste datasets is recommended.</small>
+  </footer>
+
+  <script src="/vendor/tf.min.js"></script>
+  <script src="/vendor/mobilenet.min.js"></script>
+  <script src="/script.js"></script>
+</body>
+</html>
