@@ -1,19 +1,19 @@
-const CACHE = 'recycle-ai-v2';
+const CACHE = 'recycle-ai-v3';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/script.js',
-  '/manifest.json',
+  './',
+  './index.html',
+  './styles.css',
+  './script.js',
+  './manifest.json',
   // Local vendor libs
-  '/vendor/tf.min.js',
-  '/vendor/mobilenet.min.js',
+  './vendor/tf.min.js',
+  './vendor/mobilenet.min.js',
   // Local MobileNet model (v2 1.0 224)
-  '/vendor/mobilenet/model.json',
-  '/vendor/mobilenet/group1-shard1of4.bin',
-  '/vendor/mobilenet/group1-shard2of4.bin',
-  '/vendor/mobilenet/group1-shard3of4.bin',
-  '/vendor/mobilenet/group1-shard4of4.bin'
+  './vendor/mobilenet/model.json',
+  './vendor/mobilenet/group1-shard1of4.bin',
+  './vendor/mobilenet/group1-shard2of4.bin',
+  './vendor/mobilenet/group1-shard3of4.bin',
+  './vendor/mobilenet/group1-shard4of4.bin'
 ];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));

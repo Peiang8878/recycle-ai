@@ -51,7 +51,7 @@ function prettyClassName(name) {
 async function loadModel() {
   els.pill.textContent = 'Loading model…';
   els.results.hidden = false;
-  net = await mobilenet.load({ version: 2, alpha: 1.0, modelUrl: '/vendor/mobilenet/model.json' });
+  net = await mobilenet.load({ version: 2, alpha: 1.0, modelUrl: './vendor/mobilenet/model.json' });
   els.pill.textContent = 'Ready';
 }
 
@@ -140,6 +140,6 @@ els.stopCameraBtn.addEventListener('click', stopCamera);
 // PWA bits
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(console.warn);
+    navigator.serviceWorker.register('./sw.js').catch(console.warn);
   });
 }
