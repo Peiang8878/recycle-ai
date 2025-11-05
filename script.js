@@ -44,11 +44,19 @@ const recyclableKeywords = [
   'plastic container', 'yogurt container', 'butter tub', 'storage container', 'tupperware',
   'soda bottle', 'juice bottle', 'cleaning bottle'
 ];
+const compostableKeywords = [
+  // Food & organic waste (compostable)
+  'banana', 'peel', 'apple', 'orange', 'fruit', 'vegetable', 'eggshell', 'coffee grounds', 'tea bag',
+  'lettuce', 'carrot', 'potato', 'tomato', 'broccoli', 'cucumber', 'onion', 'garlic',
+  'strawberry', 'grape', 'watermelon', 'avocado', 'lemon', 'lime', 'peach', 'pear',
+  'corn', 'pumpkin', 'squash', 'celery', 'spinach', 'cabbage', 'cauliflower',
+  'bread', 'bagel', 'muffin', 'pasta', 'rice', 'noodles', 'salad'
+];
+
 const likelyTrashKeywords = [
-  // Food & organic waste
-  'banana', 'peel', 'apple', 'orange', 'pizza', 'burger', 'hotdog', 'sandwich', 'food', 'leftover',
-  'meat', 'chicken', 'fish', 'egg', 'eggshell', 'bread', 'fruit', 'vegetable', 'french fries', 'taco',
-  'salad', 'pasta', 'rice', 'noodles', 'cake', 'cookie', 'donut', 'bagel',
+  // Non-compostable food
+  'pizza', 'burger', 'hotdog', 'sandwich', 'leftover', 'french fries', 'taco',
+  'meat', 'chicken', 'fish', 'cake', 'cookie', 'donut', 'dairy', 'cheese',
   // Non-recyclable plastics & materials
   'plastic bag', 'grocery bag', 'shopping bag', 'styrofoam', 'polystyrene', 'foam', 'bubble wrap',
   'chip bag', 'candy wrapper', 'straw', 'plastic wrap', 'cellophane', 'plastic cutlery', 'plastic fork',
@@ -68,25 +76,37 @@ function keywordMatch(preds, keywords) {
 
 function decide(preds) {
   const hitRecyclable = keywordMatch(preds, recyclableKeywords);
+  const hitCompost = keywordMatch(preds, compostableKeywords);
   const hitTrash = keywordMatch(preds, likelyTrashKeywords);
   
   // Update stats
   stats.total++;
   
-  if (hitRecyclable && (!hitTrash || hitRecyclable.probability >= hitTrash.probability * 1.2)) {
+  // Priority: Recyclable > Compost > Trash
+  if (hitRecyclable && (!hitTrash || hitRecyclable.probability >= hitTrash.probability * 1.2) && (!hitCompost || hitRecyclable.probability >= hitCompost.probability * 1.2)) {
     stats.recycled++;
     localStorage.setItem('recycleStats', JSON.stringify(stats));
-    if ('vibrate' in navigator) navigator.vibrate(50); // Haptic feedback
+    if ('vibrate' in navigator) navigator.vibrate(50);
     return { decision: 'Recyclable', kind: 'ok', match: hitRecyclable, confidence: hitRecyclable.probability };
   }
+  
+  if (hitCompost && (!hitTrash || hitCompost.probability >= hitTrash.probability * 1.1)) {
+    stats.recycled++; // Count compost as eco-friendly
+    localStorage.setItem('recycleStats', JSON.stringify(stats));
+    if ('vibrate' in navigator) navigator.vibrate([40, 40]); // Different pattern
+    return { decision: 'Compost', kind: 'compost', match: hitCompost, confidence: hitCompost.probability };
+  }
+  
   stats.trash++;
   localStorage.setItem('recycleStats', JSON.stringify(stats));
-  if ('vibrate' in navigator) navigator.vibrate([30, 50, 30]); // Different pattern
+  if ('vibrate' in navigator) navigator.vibrate([30, 50, 30]);
   return { decision: 'Trash', kind: 'bad', match: hitTrash || preds[0], confidence: (hitTrash || preds[0]).probability };
 }
 
 function displayLabel(decision) {
-  return decision === 'Recyclable' ? 'Throw it in: Recycle' : 'Throw it in: Trash';
+  if (decision === 'Recyclable') return 'Throw it in: Recycle';
+  if (decision === 'Compost') return 'Throw it in: Compost';
+  return 'Throw it in: Trash';
 }
 
 function prettyClassName(name) {
@@ -113,11 +133,18 @@ async function classifySource(srcEl) {
   // Show confidence score
   const confidence = (result.confidence * 100).toFixed(0);
   const regionInfo = recyclingRules[currentRegion];
+  let hintText = '';
+  if (result.decision === 'Recyclable') {
+    hintText = 'Rinse if dirty. Check local rules for caps and labels.';
+  } else if (result.decision === 'Compost') {
+    hintText = 'Compostable! Put in compost bin or yard waste if available.';
+  } else {
+    hintText = 'Likely landfill. If it is a clean bottle/can/jar/box, it might be recyclable.';
+  }
+  
   els.hint.innerHTML = `
     <strong>${confidence}% confident</strong><br>
-    ${result.decision === 'Recyclable' 
-      ? 'Rinse if dirty. Check local rules for caps and labels.' 
-      : 'Likely landfill. If it is a clean bottle/can/jar/box, it might be recyclable.'}
+    ${hintText}
     <br><small>${regionInfo.note}</small>
   `;
   
