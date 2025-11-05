@@ -13,15 +13,29 @@ const els = {
 };
 
 const recyclableKeywords = [
-  'bottle', 'water bottle', 'wine bottle', 'beer bottle', 'jar', 'glass', 'beaker',
-  'can', 'soda can', 'pop can', 'tin', 'aluminium', 'aluminum', 'steel', 'metal',
-  'paper', 'newspaper', 'book', 'magazine', 'notebook', 'cardboard', 'carton', 'envelope',
-  'box', 'shipping box'
+  // Glass
+  'bottle', 'water bottle', 'wine bottle', 'beer bottle', 'glass bottle', 'jar', 'glass jar',
+  // Metal
+  'can', 'soda can', 'pop can', 'beer can', 'tin', 'tin can', 'aluminium', 'aluminum', 'aluminum can', 'steel', 'metal can',
+  // Paper & Cardboard
+  'paper', 'newspaper', 'magazine', 'cardboard', 'cardboard box', 'carton', 'paper bag', 'mail', 'envelope',
+  'cereal box', 'pizza box', 'shipping box', 'corrugated',
+  // Plastic (common recyclable types)
+  'plastic bottle', 'water jug', 'milk jug', 'detergent bottle', 'shampoo bottle',
+  'plastic container', 'yogurt container', 'butter tub'
 ];
 const likelyTrashKeywords = [
-  'banana', 'banana peel', 'apple', 'apple core', 'orange', 'pizza', 'burger', 'hotdog', 'sandwich', 'food',
-  'plastic bag', 'styrofoam', 'polystyrene', 'foam', 'tissue', 'napkin', 'paper towel', 'diaper', 'cigarette', 'butt',
-  'dirty', 'soiled'
+  // Food & organic waste
+  'banana', 'peel', 'apple', 'orange', 'pizza', 'burger', 'hotdog', 'sandwich', 'food', 'leftover',
+  'meat', 'chicken', 'fish', 'egg', 'eggshell', 'bread', 'fruit', 'vegetable',
+  // Non-recyclable plastics & materials
+  'plastic bag', 'grocery bag', 'shopping bag', 'styrofoam', 'polystyrene', 'foam', 'bubble wrap',
+  'chip bag', 'candy wrapper', 'straw', 'plastic wrap', 'cellophane',
+  // Paper products (contaminated/non-recyclable)
+  'tissue', 'napkin', 'paper towel', 'paper plate', 'paper cup', 'coffee cup', 'disposable',
+  // Other trash
+  'diaper', 'cigarette', 'cigarette butt', 'wrapper', 'trash', 'garbage', 'waste',
+  'dirty', 'soiled', 'greasy', 'contaminated'
 ];
 
 function keywordMatch(preds, keywords) {
